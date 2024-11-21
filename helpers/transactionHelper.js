@@ -1,0 +1,117 @@
+const db = require('openfsm-database-connection-producer');
+const { v4: uuidv4 } = require('uuid'); // Убедитесь, что установлен uuid версии 8
+require('dotenv').config();
+
+
+ /* найти по referency_id ттранзакции */
+ exports.findByReferenceId = (id) => {
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT * FROM  transactions WHERE reference_id = ?';
+      db.query(sql, [id], (err, result) => {
+        (err)
+        ? reject(err)
+        : resolve((result[0] != undefined ? result[0]: null));
+      });
+    });
+  };
+
+   /* найти по id ттранзакции */
+ exports.findById = (id) => {
+    return new Promise((resolve, reject) => {      
+      db.query('SELECT * FROM  transactions WHERE transaction_id = ?', [id], (err, result) => {
+        (err)
+        ? reject(err)
+        : resolve((result[0] != undefined ? result[0]: null));
+      });
+    });
+  };
+
+   /* найти все транзакции по счету */
+ exports.findByAccountId = (id) => {
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT * FROM  transactions WHERE account_id = ?';
+      db.query(sql, [id], (err, result) => {
+        (err)
+        ? reject(err)
+        : resolve((result? result: null));
+      });
+    });
+  };
+
+    /* найти все транзакции по referenceId */
+ exports.findByReferenceId = (referenceId) => {
+  return new Promise((resolve, reject) => {
+    const sql = 'SELECT * FROM  transactions WHERE reference_id = ?';
+    db.query(sql, [referenceId], (err, result) => {
+      (err)
+      ? reject(err)
+      : resolve((result[0]? result[0]: null));
+    });
+  });
+};
+
+
+
+     /* создать транзакцию  (ENUM('DEPOSIT', 'WITHDRAWAL')  */
+     exports.create = (account_id, transaction_type, amount, reference_id) => {
+      return new Promise((resolve, reject) => {
+        // Проверка на корректность типа транзакции
+        const validTransactionTypes = ['DEPOSIT', 'WITHDRAWAL'];
+        if (!validTransactionTypes.includes(transaction_type)) {
+          return reject(new Error('Invalid transaction type'));
+        }
+    
+        const sql = `INSERT INTO transactions (account_id, transaction_type, amount, reference_id) VALUES (?, ?, ?, ?)`;
+        db.query(sql, [account_id, transaction_type, amount, reference_id], (err, result) => {
+          if (err) {
+            return reject(err); // Обработка ошибки
+          }
+          // Возврат результата findById
+          exports.findById(result.insertId)
+            .then(transaction => resolve(transaction)) // Разрешение промиса с найденной транзакцией
+            .catch(findError => reject(findError)); // Обработка ошибки findById
+        });
+      });
+    };
+
+
+       /* создать транзакцию 'RETURN' - возврат  */
+ exports.return = (referenceId) => {
+    return new Promise( async(resolve, reject) => {        
+        const transaction = await exports.findByReferenceId(referenceId); // получили данные откатываемой транзакции, создаем новую транзакцию - возврат
+        const returnReferenceId  = uuidv4();     
+        const sql = `INSERT INTO transactions (account_id, transaction_type, status, amount, reference_id) VALUES (?, ?, ?, ?, ?)`;
+        db.query(sql, [transaction.account_id, 'RETURN','PENDING', transaction.amount, returnReferenceId], (err, result) => {
+          (err)
+          ? reject(err)
+          : resolve(result.insertId != undefined ? result.insertId: null);
+        });
+      });
+    };
+  
+
+      /* обновить статус транзакции (ENUM('PENDING', 'SUCCESS', 'FAILED'))  */
+ exports.success = (reference_id) => {
+    return new Promise((resolve, reject) => {
+      const sql = `UPDATE transactions SET status = 'SUCCESS', updated_at = CURRENT_TIMESTAMP WHERE reference_id = ?`;
+      db.query(sql, [reference_id], (err, result) => {
+        (err)
+        ? reject(err)
+        : resolve(result.affectedRows > 0 ? result.affectedRows : null); 
+      });
+    });
+  };
+
+        /* обновить статус транзакции (ENUM('PENDING', 'SUCCESS', 'FAILED'))  */
+ exports.failed = (reference_id) => {
+    return new Promise((resolve, reject) => {
+      const sql = `UPDATE transactions SET status = 'FAILED', updated_at = CURRENT_TIMESTAMP WHERE reference_id = ?`;
+      db.query(sql, [reference_id], (err, result) => {
+        (err)
+        ? reject(err)
+        : resolve(result.affectedRows > 0 ? result.affectedRows : null); 
+      });
+    });
+  };
+  
+
