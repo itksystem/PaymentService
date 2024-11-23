@@ -13,6 +13,8 @@ const TransactionDto = require('openfsm-transaction-dto');
 const { v4: uuidv4 } = require('uuid'); 
 require('dotenv').config();
 
+  
+
 
 const isValidUUID = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
@@ -28,44 +30,76 @@ const sendResponse = (res, statusCode, data) => {
 };
 
 /*
- @input orderId - идентификатор заказа
+ @input body - идентификатор заказа
  @output 
    200 - создан
    400 - оршибка данных
    422 - ошибка процесса
    500 - серверная ошибка
 */
-exports.create = async (req, res) => {    
-    let userId = await authMiddleware.getUserId(req, res);
-    const {orderId, referenceId} = req.body;
-    if (!userId ) return sendResponse(res, 400, { message: "Invalid user ID" }); 
-    let transaction = await transactionHelper.findByReferenceId(referenceId);
-    if(transaction) return sendResponse(res, 422, { message: `transactionId ${referenceId} already exists` }); 
+
+exports.create = async (req, res) => {      
+    const objectTransation = req.body; 
+    let transaction;   
     try {
-       const order  =  await orderClient.findOrderDetailsById(commonFunction.getJwtToken(req), orderId);
-        if(!order.data.orderId) throw(500);
-          const account = new AccountDto(await accountHelper.create(userId)); // если счета у пользователя нет - создать
-            if(!account) throw(422)
-              let result = await transactionHelper.create(account.getAccountId(), 'DEPOSIT', order.data.totalAmount, referenceId); // создать транзакцию DEPOSIT - пополнение счета
-              if(!result) throw(422)
-               let transaction =  new TransactionDto(await transactionHelper.findByReferenceId(referenceId));
-               if(!transaction) throw(422)                
-               sendResponse(res, 200, { status: true,  transaction });
+        let userId = await authMiddleware.getUserId(req, res);
+        if(!userId) throw(422)
+        
+        if(!objectTransation  || !objectTransation?.referenceId)  throw(400) 
+
+        let _transaction = await transactionHelper.findByReferenceId(objectTransation.referenceId);
+        if(_transaction) throw(422)
+
+       const order  =  await orderClient.findOrderDetailsById(commonFunction.getJwtToken(req), objectTransation.orderId);       
+        if(!order?.data?.orderId) throw(500);
+        if(Number(order?.data?.orderId) != Number(objectTransation.orderId)) throw(403);
+
+        const account = new AccountDto(await accountHelper.create(userId)); // если счета у пользователя нет - создать
+        if(!account) throw(422)
+      // создать транзакцию DEPOSIT - пополнение счета в состоянии PENDING
+        transaction = await transactionHelper.create( account.getAccountId(), transactionHelper.TRANSACTION_TYPE.DEPOSIT, objectTransation);
+             if(!transaction) throw(422)     // транзакция не создалась   
+
+             // исполнение транзакции  - синхронное обращение к процессиинговому центру, получение результата вполнения оплаты           
+              let transactionResult = await transactionHelper.processing(transaction); 
+              if(!transactionResult || transactionResult?.status == false) throw(402);                
+              await transactionHelper.completed(transaction); // Успех оплаты                  
+              await transactionHelper.executeCompletedAction(transaction); // Выполняем операции при успехе транзакции
+                                                                               // Отправляем команду на передачу в доставку
+              sendResponse(res, 200, { status: true,  transaction });
             } catch (error) {
-            console.error("Error decline:", error);
+            console.error("Error decline:", error);         
+           await transactionHelper.failed(transaction); // Ошибка оплаты 
+          await transactionHelper.executeFailedAction(transaction); // Выполняем асинхронно откаты операций по саге
+                                                                    // Отменяем резервирование товара
         sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });
     }
 
 };
 
 
-exports.decline = async (req, res) => {    
-    const {deliveryOrderId} = req.body;
-    if (!deliveryOrderId) throw(400);        
+exports.decline = async (req, res) => {         
     try {
-        const delivery = await deliveryHelper.decline(deliveryOrderId);        
-        if(!delivery) throw(422)
-        sendResponse(res, 200, { status: true});
+        let userId = await authMiddleware.getUserId(req, res);
+        if(!userId) throw(422)
+
+        const objectTransation = req.body;
+        if (!objectTransation )  throw(400)
+
+        const order = await orderClient.findOrderDetailsById(commonFunction.getJwtToken(req), objectTransation.orderId);
+        if(!order.data.orderId) throw(500);
+
+         let transaction = await transactionHelper.create(account.getAccountId(), 'WITHDRAWAL', order.data.totalAmount, objectTransation.referenceId); // создать транзакцию WITHDRAWAL
+         if(!transaction) throw(422)      
+ 
+          let transactionResult = await transactionHelper.executeTransaction(transaction); // исполнение транзакции  - синхронное обращение к процессиинговому центру              
+          if(!transactionResult) throw(402)
+
+          const depositResult =await accountHelper.withdrawal(transaction); // списать средствасо счета
+          if(!depositResult) throw(402)
+
+          sendResponse(res, 200, { status: true,  transaction });
+
     } catch (error) {
          console.error("Error create:", error);
          sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });

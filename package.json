@@ -26,7 +26,7 @@
     "openfsm-mail-notification-producer": "^1.0.1",
     "openfsm-media-image-dto": "^1.0.0",
     "openfsm-middlewares-auth-service": "^1.0.7",
-    "openfsm-order-dto": "^1.0.1",
+    "openfsm-order-dto": "^1.0.4",
     "openfsm-order-service-client-handler": "^1.0.0",
     "openfsm-permissions-dto": "^1.0.0",
     "openfsm-product-dto": "^1.0.0",
