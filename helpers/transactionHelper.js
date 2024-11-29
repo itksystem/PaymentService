@@ -99,7 +99,9 @@ exports.TRANSACTION_STATUS = {
               transaction.paymentDetails = objectTransation.paymentDetails;
               resolve(transaction)
             }) // Разрешение промиса с найденной транзакцией
-            .catch(findError => reject(null)); // Обработка ошибки findById
+            .catch(
+              findError => reject(null)
+            ); // Обработка ошибки findById
         });
       });
     };

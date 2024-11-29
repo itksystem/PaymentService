@@ -41,6 +41,7 @@ const sendResponse = (res, statusCode, data) => {
 exports.create = async (req, res) => {      
     const objectTransation = req.body; 
     let transaction;   
+    let order;
     try {
         let userId = await authMiddleware.getUserId(req, res);
         if(!userId) throw(422)
@@ -49,8 +50,8 @@ exports.create = async (req, res) => {
 
         let _transaction = await transactionHelper.findByReferenceId(objectTransation.referenceId);
         if(_transaction) throw(422)
-
-       const order  =  await orderClient.findOrderDetailsById(commonFunction.getJwtToken(req), objectTransation.orderId);       
+        
+        order  =  await orderClient.findOrderByReferenceId(commonFunction.getJwtToken(req), objectTransation.referenceId);               
         if(!order?.data?.orderId) throw(500);
         if(Number(order?.data?.orderId) != Number(objectTransation.orderId)) throw(403);
 
