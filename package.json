@@ -19,7 +19,7 @@
     "openfsm-auth-service-client-handler": "^1.0.3",
     "openfsm-basket-helper": "^1.0.2",
     "openfsm-basket-item-dto": "^1.0.0",
-    "openfsm-client-producer-amqp": "^1.0.0",
+    "openfsm-client-producer-amqp": "^1.0.1",
     "openfsm-common": "^1.0.9",
     "openfsm-common-functions": "^1.0.1",
     "openfsm-database-connection-producer": "^1.0.0",

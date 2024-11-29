@@ -65,7 +65,9 @@ exports.create = async (req, res) => {
               if(!transactionResult || transactionResult?.status == false) throw(402);                
               await transactionHelper.completed(transaction); // Успех оплаты                  
               await transactionHelper.executeCompletedAction(transaction); // Выполняем операции при успехе транзакции
-                                                                               // Отправляем команду на передачу в доставку
+                                                                           // Отправляем команду на передачу в доставку
+                                                                           // DELIVERY_RESERVATION
+                                                                           // WAREHOUSE_RESERVATION
               sendResponse(res, 200, { status: true,  transaction });
             } catch (error) {
             console.error("Error decline:", error);         

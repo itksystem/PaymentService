@@ -1,16 +1,26 @@
 const amqp = require('amqplib');
 const db = require('openfsm-database-connection-producer');
 const { v4: uuidv4 } = require('uuid'); // Убедитесь, что установлен uuid версии 8
+const ClientProducerAMQP = require('openfsm-client-producer-amqp'); 
+if (!ClientProducerAMQP) {
+  throw new Error('ClientProducerAMQP is not defined');
+}
 require('dotenv').config();
 
-const { RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASSWORD, RABBITMQ_QUEUE } = process.env;
+const { RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASSWORD, RABBITMQ_PAYMENT_SUCCESS_ACTION_QUEUE,  
+  DELIVERY_RESERVATION_QUEUE,
+  WAREHOUSE_RESERVATION_QUEUE,
+  RABBITMQ_PAYMENT_FAILED_ACTION_QUEUE} = process.env;
 const login = RABBITMQ_USER || 'guest';
 const pwd = RABBITMQ_PASSWORD || 'guest';
-const queue = RABBITMQ_QUEUE || 'PAYMENT_RESULT_ACTION';
-const host = RABBITMQ_HOST || 'localhost';
+const success_queue = RABBITMQ_PAYMENT_SUCCESS_ACTION_QUEUE || 'PAYMENT_SUCCESS_ACTION';
+const DELIVERY_RESERVATION = DELIVERY_RESERVATION_QUEUE || 'DELIVERY_RESERVATION';
+const WAREHOUSE_RESERVATION = WAREHOUSE_RESERVATION_QUEUE || 'WAREHOUSE_RESERVATION';
+const failed_queue = RABBITMQ_PAYMENT_FAILED_ACTION_QUEUE || 'PAYMENT_FAILED_ACTION';
+const host = RABBITMQ_HOST || 'rabbitmq-service';
 const port = RABBITMQ_PORT || '5672';
 
-
+console.log(process.env);
 
 exports.TRANSACTION_TYPE = {
   DEPOSIT: "DEPOSIT",
@@ -158,17 +168,28 @@ exports.TRANSACTION_STATUS = {
 
     
 /* Отправка команды от откат операций бронирования товара  */
-   exports.executeCompletedAction = (transaction) => {
-    
+   exports.executeCompletedAction = async (transaction) => {
+    try {
+      const rabbitClient = new ClientProducerAMQP();
+      await  rabbitClient.sendMessage(DELIVERY_RESERVATION, transaction )  
+      await  rabbitClient.sendMessage(WAREHOUSE_RESERVATION, transaction )  
+      } catch (error) {            
+     throw(error)
+    }
    };
 
   /* Отправка команды от откат операций бронирования товара  */
-  exports.executeFailedAction = (transaction) => {
-    
+  exports.executeFailedAction = async (transaction) => {
+    try {
+      const rabbitClient = new ClientProducerAMQP();
+      await  rabbitClient.sendMessage(failed_queue, transaction )  
+   } catch (error) {            
+     throw(error)
+   }
   }; 
 
   // Основная функция для обработки сообщения из очереди
-async function processMessage(msg) {
+async function messageConsumer(msg) {
   try {
       let message = msg.content.toString();
       const messageContent = JSON.parse(message);
@@ -179,7 +200,7 @@ async function processMessage(msg) {
 }
 
 // Подключение к RabbitMQ и прослушивание очереди
-async function startConsumer() {
+async function startConsumer(queue) {
   try {        
       const connection = await amqp.connect(`amqp://${login}:${pwd}@${host}:${port}`);
       const channel = await connection.createChannel();
@@ -188,7 +209,7 @@ async function startConsumer() {
 
       channel.consume(queue, async (msg) => {
           if (msg !== null) {
-              await processMessage(msg);
+              await messageConsumer(msg);
               channel.ack(msg); // Подтверждение обработки сообщения
           }
       });
@@ -197,7 +218,7 @@ async function startConsumer() {
   }
 }
 
-startConsumer();
+// startConsumer();
 
 /*
 deposit - транзакция "внесение средств на счет пользователя"
