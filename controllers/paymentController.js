@@ -64,15 +64,12 @@ exports.create = async (req, res) => {
               let transactionResult = await transactionHelper.processing(transaction); 
               if(!transactionResult || transactionResult?.status == false) throw(402);                
               await transactionHelper.completed(transaction); // Успех оплаты                  
-              await transactionHelper.executeCompletedAction(transaction); // Выполняем операции при успехе транзакции
-                                                                           // Отправляем команду на передачу в доставку
-                                                                           // DELIVERY_RESERVATION
-                                                                           // WAREHOUSE_RESERVATION
+              await transactionHelper.executeCompletedAction({ status : true, order}); // Выполняем операции при успехе транзакции                                                                           
               sendResponse(res, 200, { status: true,  transaction });
             } catch (error) {
             console.error("Error decline:", error);         
            await transactionHelper.failed(transaction); // Ошибка оплаты 
-          await transactionHelper.executeFailedAction(transaction); // Выполняем асинхронно откаты операций по саге
+          await transactionHelper.executeFailedAction({ status : false, order}); // Выполняем асинхронно откаты операций по саге
                                                                     // Отменяем резервирование товара
         sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });
     }

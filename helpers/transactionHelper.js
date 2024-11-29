@@ -13,10 +13,9 @@ const { RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASSWORD, RABBITMQ
   RABBITMQ_PAYMENT_FAILED_ACTION_QUEUE} = process.env;
 const login = RABBITMQ_USER || 'guest';
 const pwd = RABBITMQ_PASSWORD || 'guest';
-const success_queue = RABBITMQ_PAYMENT_SUCCESS_ACTION_QUEUE || 'PAYMENT_SUCCESS_ACTION';
 const DELIVERY_RESERVATION = DELIVERY_RESERVATION_QUEUE || 'DELIVERY_RESERVATION';
 const WAREHOUSE_RESERVATION = WAREHOUSE_RESERVATION_QUEUE || 'WAREHOUSE_RESERVATION';
-const failed_queue = RABBITMQ_PAYMENT_FAILED_ACTION_QUEUE || 'PAYMENT_FAILED_ACTION';
+const failed_queue = RABBITMQ_PAYMENT_FAILED_ACTION_QUEUE || 'ORDER_STATUS';
 const host = RABBITMQ_HOST || 'rabbitmq-service';
 const port = RABBITMQ_PORT || '5672';
 
@@ -168,21 +167,22 @@ exports.TRANSACTION_STATUS = {
 
     
 /* Отправка команды от откат операций бронирования товара  */
-   exports.executeCompletedAction = async (transaction) => {
+   exports.executeCompletedAction = async (order) => {
     try {
-      const rabbitClient = new ClientProducerAMQP();
-      await  rabbitClient.sendMessage(DELIVERY_RESERVATION, transaction )  
-      await  rabbitClient.sendMessage(WAREHOUSE_RESERVATION, transaction )  
+      let rabbitClient = new ClientProducerAMQP();
+      await  rabbitClient.sendMessage(DELIVERY_RESERVATION, order )  
+      rabbitClient = new ClientProducerAMQP();
+      await  rabbitClient.sendMessage(WAREHOUSE_RESERVATION, order )  
       } catch (error) {            
      throw(error)
     }
    };
 
   /* Отправка команды от откат операций бронирования товара  */
-  exports.executeFailedAction = async (transaction) => {
+  exports.executeFailedAction = async (order) => {
     try {
       const rabbitClient = new ClientProducerAMQP();
-      await  rabbitClient.sendMessage(failed_queue, transaction )  
+      await  rabbitClient.sendMessage(failed_queue, order )  
    } catch (error) {            
      throw(error)
    }
