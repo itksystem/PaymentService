@@ -51,14 +51,16 @@ exports.create = async (req, res) => {
         let _transaction = await transactionHelper.findByReferenceId(objectTransation.referenceId);
         if(_transaction) throw(422)
         
-        order  =  await orderClient.findOrderByReferenceId(commonFunction.getJwtToken(req), objectTransation.referenceId);               
-        if(!order?.data?.orderId) throw(500);
-        if(Number(order?.data?.orderId) != Number(objectTransation.orderId)) throw(403);
-
-        const account = new AccountDto(await accountHelper.create(userId)); // если счета у пользователя нет - создать
-        if(!account) throw(422)
-      // создать транзакцию DEPOSIT - пополнение счета в состоянии PENDING
-        transaction = await transactionHelper.create( account.getAccountId(), transactionHelper.TRANSACTION_TYPE.DEPOSIT, objectTransation);
+        let _response  =  await orderClient.findOrderByReferenceId(commonFunction.getJwtToken(req), objectTransation.referenceId);
+        if(!_response?.data?.order?.orderId) throw(500);
+        _response  =  await orderClient.findOrderDetailsById(commonFunction.getJwtToken(req), _response?.data?.order?.orderId);
+         if(!_response?.data?.orderId) throw(500);
+          order = _response?.data;
+          objectTransation.totalAmount = order.totalAmount;
+ 
+          const account = new AccountDto(await accountHelper.create(userId)); // если счета у пользователя нет - создать
+         if(!account) throw(422)
+             transaction = await transactionHelper.create( account.getAccountId(), transactionHelper.TRANSACTION_TYPE.DEPOSIT, objectTransation);
              if(!transaction) throw(422)     // транзакция не создалась   
 
              // исполнение транзакции  - синхронное обращение к процессиинговому центру, получение результата вполнения оплаты           
