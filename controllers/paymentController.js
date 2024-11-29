@@ -56,7 +56,9 @@ exports.create = async (req, res) => {
         _response  =  await orderClient.findOrderDetailsById(commonFunction.getJwtToken(req), _response?.data?.order?.orderId);
          if(!_response?.data?.orderId) throw(500);
           order = _response?.data;
+          order.deliveryId = objectTransation.deliveryId;
           objectTransation.totalAmount = order.totalAmount;
+          
  
           const account = new AccountDto(await accountHelper.create(userId)); // если счета у пользователя нет - создать
          if(!account) throw(422)
