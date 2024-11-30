@@ -74,7 +74,7 @@ exports.create = async (req, res) => {
             } catch (error) {
             console.error("Error decline:", error);         
            await transactionHelper.failed(transaction); // Ошибка оплаты 
-          await transactionHelper.executeFailedAction({ status : false, order}); // Выполняем асинхронно откаты операций по саге
+          await transactionHelper.executeFailedAction({ status : false, processStatus: common.OrderStatus.DECLINE, order}); // Выполняем асинхронно откаты операций по саге
                                                                     // Отменяем резервирование товара
         sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });
     }
