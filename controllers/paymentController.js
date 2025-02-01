@@ -1,5 +1,6 @@
 const { DateTime }    = require('luxon');
 const accountHelper = require('../helpers/accountHelper');
+const instrumentsHelper = require('../helpers/instrumentsHelper');
 const transactionHelper = require('../helpers/transactionHelper');
 const OrderServiceClientHandler = require('openfsm-order-service-client-handler')
 const orderClient = new OrderServiceClientHandler();
@@ -103,6 +104,33 @@ exports.decline = async (req, res) => {
           if(!depositResult) throw(402)
 
           sendResponse(res, 200, { status: true,  transaction });
+
+    } catch (error) {
+         console.error("Error create:", error);
+         sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });
+    }
+};
+
+
+exports.instruments = async (req, res) => {         
+    try {
+        let userId = await authMiddleware.getUserId(req, res);
+        if(!userId) throw(422)
+        let  instruments = await instrumentsHelper.getInstuments(userId);
+        sendResponse(res, 200, { status: true,  instruments });
+
+    } catch (error) {
+         console.error("Error create:", error);
+         sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });
+    }
+};
+
+exports.cards = async (req, res) => {         
+    try {
+        let userId = await authMiddleware.getUserId(req, res);
+        if(!userId) throw(422)
+        let  cards = await instrumentsHelper.getCards(userId);
+        sendResponse(res, 200, { status: true,  cards });
 
     } catch (error) {
          console.error("Error create:", error);

@@ -5,13 +5,6 @@ require('dotenv').config();
 
 const app = express();
 app.use(bodyParser.json());
-
-app.use(function(request, response, next){
-  console.log(request);  
-  next();
-});
-
-
 app.use('/api/payment', paymentRoutes);
 
 

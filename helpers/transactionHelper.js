@@ -19,8 +19,6 @@ const failed_queue = RABBITMQ_PAYMENT_FAILED_ACTION_QUEUE || 'ORDER_STATUS';
 const host = RABBITMQ_HOST || 'rabbitmq-service';
 const port = RABBITMQ_PORT || '5672';
 
-console.log(process.env);
-
 exports.TRANSACTION_TYPE = {
   DEPOSIT: "DEPOSIT",
   WITHDRAWAL: "WITHDRAWAL"
