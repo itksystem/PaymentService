@@ -137,3 +137,36 @@ exports.cards = async (req, res) => {
          sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });
     }
 };
+
+
+
+exports.setDefaultCard = async (req, res) => {         
+    try {
+        let userId = await authMiddleware.getUserId(req, res);
+        let cardId = req.params.cardId;
+        if(!userId || !cardId) throw(422)
+        let  cards = await instrumentsHelper.setDefaultCard(userId, cardId);
+
+        sendResponse(res, 200, { status: true,  defaultCardId : cardId });
+
+    } catch (error) {
+         console.error("Error create:", error);
+         sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });
+    }
+};
+
+exports.deleteCard = async (req, res) => {         
+    try {
+        let userId = await authMiddleware.getUserId(req, res);
+        let cardId = req.params.cardId;
+        if(!userId || !cardId) throw(422)
+        let result = await instrumentsHelper.deleteCard(userId, cardId);
+        if(!result) throw(500)
+        let  cards  = await instrumentsHelper.getCards(userId);
+        sendResponse(res, 200, { status: true,  cards });
+
+    } catch (error) {
+         console.error("Error create:", error);
+         sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });
+    }
+};

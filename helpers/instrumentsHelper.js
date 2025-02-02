@@ -8,7 +8,7 @@ require('dotenv').config();
 
 exports.getInstuments = async (userId) => {
   const result = await new Promise((resolve, reject) => {
-    db.query(SQL.INSTRUMENTS.SQL_GET_INSTRUMENTS, [userId], (err, result) => {              
+    db.query(SQL.INSTRUMENTS.SQL_GET_INSTRUMENTS, [], (err, result) => {              
       if (err) {
         logger.error(err);
         return reject(err);
@@ -16,7 +16,7 @@ exports.getInstuments = async (userId) => {
       resolve(result); // Предполагается, что поле isConfirmed
     });
   });   
-  return  result != undefined ? result?.rows[0]: null
+  return  result != undefined ? result?.rows: null
 };
 
 exports.getCards = async (userId) => {
@@ -29,5 +29,32 @@ exports.getCards = async (userId) => {
       resolve(result); // Предполагается, что поле isConfirmed
     });
   });   
-  return  result != undefined ? result?.rows[0]: null
+  return  result != undefined ? result?.rows: null
+};
+
+
+exports.setDefaultCard = async (userId, cardId) => {
+  const result = await new Promise((resolve, reject) => {
+    db.query(SQL.INSTRUMENTS.SQL_SET_DEFAULT_CARD, [userId, cardId], (err, result) => {              
+      if (err) {
+        logger.error(err);
+        return reject(err);
+      }
+      resolve(result); // Предполагается, что поле isConfirmed
+    });
+  });   
+  return  result != undefined ? result?.rows: null
+};
+
+exports.deleteCard = async (userId, cardId) => {
+  const result = await new Promise((resolve, reject) => {
+    db.query(SQL.INSTRUMENTS.SQL_DELETE_CARD, [userId, cardId], (err, result) => {              
+      if (err) {
+        logger.error(err);
+        return reject(err);
+      }
+      resolve(result); // Предполагается, что поле isConfirmed
+    });
+  });   
+  return  result != undefined ? result?.rows: null
 };
