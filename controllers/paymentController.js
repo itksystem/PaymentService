@@ -12,7 +12,7 @@ const authMiddleware = require('openfsm-middlewares-auth-service'); // middlewar
 const AccountDto = require('openfsm-account-dto');
 const TransactionDto = require('openfsm-transaction-dto');
 const { v4: uuidv4 } = require('uuid'); 
-require('dotenv').config();
+require('dotenv').config({ path: '.env-payment-service' });
 
   
 
@@ -143,7 +143,7 @@ exports.cards = async (req, res) => {
 exports.setDefaultCard = async (req, res) => {         
     try {
         let userId = await authMiddleware.getUserId(req, res);
-        let cardId = req.params.cardId;
+        let {cardId} = req.body;
         if(!userId || !cardId) throw(422)
         let  cards = await instrumentsHelper.setDefaultCard(userId, cardId);
 
@@ -158,7 +158,7 @@ exports.setDefaultCard = async (req, res) => {
 exports.deleteCard = async (req, res) => {         
     try {
         let userId = await authMiddleware.getUserId(req, res);
-        let cardId = req.params.cardId;
+        let {cardId} = req.body;
         if(!userId || !cardId) throw(422)
         let result = await instrumentsHelper.deleteCard(userId, cardId);
         if(!result) throw(500)

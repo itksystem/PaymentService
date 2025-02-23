@@ -4,7 +4,7 @@ const MESSAGES   = require('common-payment-service').MESSAGES;
 const logger     = require('openfsm-logger-handler');
 
 
-require('dotenv').config();
+require('dotenv').config({ path: '.env-payment-service' });
 
 exports.getInstuments = async (userId) => {
   const result = await new Promise((resolve, reject) => {

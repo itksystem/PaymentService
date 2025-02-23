@@ -5,7 +5,7 @@ const ClientProducerAMQP = require('openfsm-client-producer-amqp');
 if (!ClientProducerAMQP) {
   throw new Error('ClientProducerAMQP is not defined');
 }
-require('dotenv').config();
+require('dotenv').config({ path: '.env-payment-service' });
 
 const { RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASSWORD, RABBITMQ_PAYMENT_SUCCESS_ACTION_QUEUE,  
   DELIVERY_RESERVATION_QUEUE,

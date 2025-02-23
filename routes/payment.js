@@ -9,8 +9,8 @@ router.post('/v1/decline', authMiddleware.authenticateToken, payment.decline);  
 
 router.get('/v1/instruments', authMiddleware.authenticateToken, payment.instruments);  // Получить набор инструментов
 router.get('/v1/cards', authMiddleware.authenticateToken, payment.cards);  // Получить набор инструментов
-router.post('/v1/cards/:cardId/default', authMiddleware.authenticateToken, payment.setDefaultCard);  // Получить набор инструментов
-router.delete('/v1/cards/:cardId', authMiddleware.authenticateToken, payment.deleteCard);  // Получить набор инструментов
+router.patch('/v1/card', authMiddleware.authenticateToken, payment.setDefaultCard);  // Получить набор инструментов
+router.delete('/v1/card', authMiddleware.authenticateToken, payment.deleteCard);  // Получить набор инструментов
 
 
 module.exports = router;
