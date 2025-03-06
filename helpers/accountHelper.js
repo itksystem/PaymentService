@@ -17,25 +17,38 @@ const port = RABBITMQ_PORT || '5672';
 
  /* создать счет  */
  exports.create = (userId) => {
-  if(!userId) return null;
-  console.log(`accountHelper.create ${userId}`)
-  return new Promise((resolve, reject) => {    
-    db.query(`INSERT IGNORE INTO accounts (user_id, balance, created_at, updated_at) VALUES( ?, 0.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, [userId], (err, result) => {
-      (err)
-      ? reject(err)
-      :  db.query('SELECT * FROM accounts WHERE user_id = ?', [userId], (err, result) => {
-          (err)
-           ? reject(err)
-           : resolve((result[0] != undefined ? result[0]: null));
-         });     
-      });
+  if (!userId) return Promise.resolve(null);
+
+  console.log(`accountHelper.create ${userId}`);
+
+  return new Promise((resolve, reject) => {
+    db.query(
+      `INSERT INTO pa_payment_service.accounts (user_id, balance, created_at, updated_at)
+       VALUES ($1, 0.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+       ON CONFLICT (user_id) DO NOTHING
+       RETURNING *`,
+      [userId],
+      (err, insertResult) => {
+        if (err) return reject(err);
+
+        db.query(
+          'SELECT * FROM pa_payment_service.accounts WHERE user_id = $1',
+          [userId],
+          (err, selectResult) => {
+            if (err) return reject(err);
+            resolve(selectResult.rows.length > 0 ? selectResult.rows[0] : null);
+          }
+        );
+      }
+    );
   });
 };
+
 
  /* найти счет */
  exports.findByAccountId = (id) => {
     return new Promise((resolve, reject) => {
-      const sql = 'SELECT * FROM accounts WHERE account_id = ?';
+      const sql = 'SELECT * FROM pa_payment_service.accounts WHERE account_id = $1';
       db.query(sql, [id], (err, result) => {
         (err)
         ? reject(err)
@@ -47,7 +60,7 @@ const port = RABBITMQ_PORT || '5672';
    /* найти счет */
  exports.findByUserId = (id) => {
     return new Promise((resolve, reject) => {
-      const sql = 'SELECT * FROM accounts WHERE user_id = ?';
+      const sql = 'SELECT * FROM pa_payment_service.accounts WHERE user_id = $1';
       db.query(sql, [id], (err, result) => {
         (err)
         ? reject(err)
@@ -59,7 +72,7 @@ const port = RABBITMQ_PORT || '5672';
   /* списать сумму со счета */
   exports.withdraw = (amount, account_id ) => {
     return new Promise((resolve, reject) => {      
-      const sql = `UPDATE accounts SET  balance = balance - ?,  updated_at = CURRENT_TIMESTAMP  WHERE account_id = ?`;
+      const sql = `UPDATE pa_payment_service.accounts SET  balance = balance - $1,  updated_at = CURRENT_TIMESTAMP  WHERE account_id = $2`;
       db.query(sql, [amount, account_id], (err, result) => {
         (err)
         ? reject(err)
@@ -72,7 +85,7 @@ const port = RABBITMQ_PORT || '5672';
    /* подкрепление счета суммы транзакии */
    exports.deposit = (amount, account_id ) => {
     return new Promise((resolve, reject) => {
-      const sql = `UPDATE accounts SET  balance = balance + ?,  updated_at = CURRENT_TIMESTAMP  WHERE account_id = ?`;
+      const sql = `UPDATE pa_payment_service.accounts SET  balance = balance + $1,  updated_at = CURRENT_TIMESTAMP  WHERE account_id = $2`;
       db.query(sql, [amount, account_id], (err, result) => {
         (err)
         ? reject(err)
@@ -85,7 +98,7 @@ const port = RABBITMQ_PORT || '5672';
      exports.return = (referenceId) => {
         return new Promise(async (resolve, reject) => {
           const _transaction =  await TransactionModel.findByReferenceId(referenceId);  // создали транзакцию  return     
-          const sql = `UPDATE accounts SET  balance = balance + ?,  updated_at = CURRENT_TIMESTAMP  WHERE account_id = ?`;
+          const sql = `UPDATE pa_payment_service.accounts SET  balance = balance + $1,  updated_at = CURRENT_TIMESTAMP  WHERE account_id = $2`;
           db.query(sql, [_transaction.amount, _transaction.account_id], (err, result) => {
             (err)
             ? reject(err)
