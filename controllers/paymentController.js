@@ -2,6 +2,7 @@ const { DateTime }    = require('luxon');
 const accountHelper = require('../helpers/accountHelper');
 const instrumentsHelper = require('../helpers/instrumentsHelper');
 const transactionHelper = require('../helpers/transactionHelper');
+const {TRANSACTION_STATUS}= require('../helpers/transactionHelper');
 const OrderServiceClientHandler = require('openfsm-order-service-client-handler')
 const orderClient = new OrderServiceClientHandler();
 const OrderDto = require('openfsm-order-dto');
@@ -38,7 +39,7 @@ const sendResponse = (res, statusCode, data) => {
    422 - ошибка процесса
    500 - серверная ошибка
 */
-
+/*
 exports.create = async (req, res) => {      
     const objectTransation = req.body; 
     let transaction;   
@@ -110,7 +111,7 @@ exports.decline = async (req, res) => {
          sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });
     }
 };
-
+*/
 
 exports.instruments = async (req, res) => {         
     try {
@@ -165,6 +166,34 @@ exports.deleteCard = async (req, res) => {
         let  cards  = await instrumentsHelper.getCards(userId);
         sendResponse(res, 200, { status: true,  cards });
 
+    } catch (error) {
+         console.error("Error create:", error);
+         sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });
+    }
+};
+
+
+exports.successHook = async (req, res) => {         
+    try {
+        let hook = await transactionHelper.hook(
+            req.body, 
+            TRANSACTION_STATUS.COMPLETED
+        );
+        sendResponse(res, 200, { status: true,  hook });
+    } catch (error) {
+         console.error("Error create:", error);
+         sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });
+    }
+};
+
+
+exports.failedHook = async (req, res) => {         
+    try {
+        let hook = await transactionHelper.hook(
+            req.body, 
+            TRANSACTION_STATUS.FAILED
+        );
+        sendResponse(res, 200, { status: true,  hook });
     } catch (error) {
          console.error("Error create:", error);
          sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });
