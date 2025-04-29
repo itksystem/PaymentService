@@ -14,6 +14,7 @@ const payment = require('../controllers/paymentController');
 
 router.post(     '/v1/transaction-success-hook', payment.successHook);  // Получить набор инструментов
 router.post(     '/v1/transaction-failed-hook',  payment.failedHook);  // Получить набор инструментов
+router.post(     '/v1/create',  payment.create);  // Получить набор инструментов
 
 //
 router.get(     '/v1/instruments', authMiddleware.authenticateToken, payment.instruments);  // Получить набор инструментов

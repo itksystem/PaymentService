@@ -2,7 +2,7 @@ const { DateTime }    = require('luxon');
 const accountHelper = require('../helpers/accountHelper');
 const instrumentsHelper = require('../helpers/instrumentsHelper');
 const transactionHelper = require('../helpers/transactionHelper');
-const {TRANSACTION_STATUS}= require('../helpers/transactionHelper');
+const {TRANSACTION_TYPE, TRANSACTION_STATUS}= require('../helpers/transactionHelper');
 const OrderServiceClientHandler = require('openfsm-order-service-client-handler')
 const orderClient = new OrderServiceClientHandler();
 const OrderDto = require('openfsm-order-dto');
@@ -30,6 +30,43 @@ const validateRequest = (productId, quantity, userId) => {
 const sendResponse = (res, statusCode, data) => {
     res.status(statusCode).json(data);
 };
+
+
+exports.create = async (req, res) => {      
+  try {
+    let userId = await authMiddleware.getUserId(req, res);
+    if(!userId) throw(401)
+
+    let account= await accountHelper.findByUserId(userId); 
+    if(!account) 
+        throw(`!account`);
+
+     const {amount, referenceId} = req.body;
+     if(!amount || !referenceId) 
+        throw(`!amount || !referenceId`);
+
+     let msg = {}
+        msg.accountId = Number(account.account_id);
+        msg.amount = Number(amount);
+        msg.type = TRANSACTION_TYPE.DEPOSIT;
+        msg.status = TRANSACTION_STATUS.PENDING;
+        msg.transactionId = uuidv4();
+        msg.referenceId = referenceId;
+        msg.processMessage = null;
+        msg.processCode = null;
+        msg.processCharCode = null;
+     let _transaction = await transactionHelper.findByReferenceId(referenceId);
+     if(_transaction) throw(`Transaction exists with this referenceId ${referenceId}`)
+
+        let transaction = await transactionHelper.transaction(msg);
+        if(!transaction) throw(500)
+        sendResponse(res, 200, { status: true,  transaction });
+       } catch (error) {
+        console.error("exports.create error:", error);
+        sendResponse(res, (Number(error) || 500), { code: (Number(error) || 500), message:  new CommonFunctionHelper().getDescriptionByCode((Number(error) || 500)) });
+  }
+}
+
 
 /*
  @input body - идентификатор заказа
